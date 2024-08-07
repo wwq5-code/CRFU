@@ -3,11 +3,11 @@ import numpy as np
 
 # user num = 50
 labels = ['2%', '4%', '6%', '8%', '10%']
-unl_fr = [10*10*0.22 , 10*10*0.22, 10*10*0.22 , 10*10*0.22 , 10*10*0.22   ]
-unl_br = [59*100/6000*0.22 , 44*100/6000*0.22, 56*100/6000*0.22, 70*100/6000*0.22, 66*100/6000*0.22]
-unl_vib = [45*100/6000*0.22, 40*100/6000*0.22, 41*100/6000*0.22, 45*100/6000*0.22, 45*100/6000*0.22]
+#unl_fr = [10*10*0.22 , 10*10*0.22, 10*10*0.22 , 10*10*0.22 , 10*10*0.22   ]
+unl_br = [10.18 , 10.48, 10.60, 10.05, 10.71]
+unl_vib = [10.06, 10.08, 11.24, 9.71, 10.95]
 #unl_self_r = [2*52*100/6000*0.22, 2*46*100/6000*0.22, 2*45*100/6000*0.22, 2*53*100/6000*0.22, 2*50*100/6000*0.22]
-unl_hess_r = [61*100/6000*0.22 +2.2 , 35*100/6000*0.22 +2.2 , 61*100/6000*0.22 +2.2 , 80*100/6000*0.22 +2.2 , 70*100/6000*0.22 +2.2 ]
+unl_hess_r = [32.11 , 33 , 31.44 , 31.28, 32.51 ]
 
 x = np.arange(len(labels))  # the label locations
 width = 0.6  # the width of the bars
@@ -35,7 +35,7 @@ plt.ylabel('Running Time (s)', fontsize=20)
 plt.xticks(x, labels, fontsize=20)
 # ax.set_xticklabels(labels,fontsize=15)
 
-my_y_ticks = np.arange(0, 3.1, 0.5)
+my_y_ticks = np.arange(0, 43.1, 5)
 plt.yticks(my_y_ticks, fontsize=20)
 # ax.set_yticklabels(my_y_ticks,fontsize=15)
 
@@ -53,5 +53,5 @@ plt.rcParams['figure.subplot.left'] = 0.11
 plt.rcParams['figure.subplot.bottom'] = 0.08
 plt.rcParams['figure.subplot.right'] = 0.977
 plt.rcParams['figure.subplot.top'] = 0.969
-plt.savefig('mnist_rt_er_bar.pdf', format='pdf', dpi=200)
+plt.savefig('stl10_rt_er_bar.pdf', format='pdf', dpi=200)
 plt.show()

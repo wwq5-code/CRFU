@@ -21,9 +21,12 @@ import torchvision.transforms as T
 from torchvision import datasets, transforms
 import matplotlib.pyplot as plt
 import numpy as np
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader, Dataset, ConcatDataset
 import copy
 import random
+
+import torchmetrics
+from torchmetrics.classification import BinaryAUROC, Accuracy
 
 def conv_block(in_channels, out_channels, stride=1):
     return nn.Sequential(
@@ -541,7 +544,7 @@ class PoisonedDataset(Dataset):
                 # x_cpu = x.cpu().data
                 # x_cpu = x_cpu.clamp(0, 1)
                 # x_cpu = x_cpu.view(1, 1, 28, 28)
-                # grid = torchvision.utils.make_grid(x_cpu, nrow=1, cmap="gray")
+                # grid = torchvision.utils.make_grid(x_cpu, nrow=1)
                 # plt.imshow(np.transpose(grid, (1, 2, 0)))  # 交换维度，从GBR换成RGB
                 # plt.show()
 
@@ -584,7 +587,7 @@ def show_cifar(x):
     elif args.dataset == "CIFAR10":
         x = x.view(1, 3, 32, 32)
     print(x)
-    grid = torchvision.utils.make_grid(x, nrow=1, cmap="gray")
+    grid = torchvision.utils.make_grid(x, nrow=1)
     plt.imshow(np.transpose(grid, (1, 2, 0)))  # 交换维度，从GBR换成RGB
     plt.show()
 
@@ -602,7 +605,7 @@ def create_backdoor_train_dataset(dataname, train_data, base_label, trigger_labe
     elif args.dataset == "CIFAR10":
         x = x.view(1, 3, 32, 32)
     print(x)
-    grid = torchvision.utils.make_grid(x, nrow=1, cmap="gray")
+    grid = torchvision.utils.make_grid(x, nrow=1)
     plt.imshow(np.transpose(grid, (1, 2, 0)))  # 交换维度，从GBR换成RGB
     plt.show()
     return train_data.data, train_data.targets
@@ -613,7 +616,7 @@ def create_backdoor_train_dataset(dataname, train_data, base_label, trigger_labe
                 # x_cpu = x.cpu().data
                 # x_cpu = x_cpu.clamp(0, 1)
                 # x_cpu = x_cpu.view(1, 3, 32, 32)
-                # grid = torchvision.utils.make_grid(x_cpu, nrow=1, cmap="gray")
+                # grid = torchvision.utils.make_grid(x_cpu, nrow=1)
                 # plt.imshow(np.transpose(grid, (1, 2, 0)))  # 交换维度，从GBR换成RGB
                 # plt.show()
 """
@@ -632,7 +635,7 @@ def create_backdoor_test_dataset(dataname, test_data, base_label, trigger_label,
         x = x.view(x.size(0), 1, 28, 28)
     elif args.dataset == "CIFAR10":
         x = x.view(1, 3, 32, 32)
-    grid = torchvision.utils.make_grid(x, nrow=1, cmap="gray")
+    grid = torchvision.utils.make_grid(x, nrow=1)
     plt.imshow(np.transpose(grid, (1, 2, 0)))  # 交换维度，从GBR换成RGB
     plt.show()
     return b
@@ -1498,31 +1501,19 @@ def retraining_train(vibi, vibi_retrain, vibi_f_frkl_ss, dataloader_remain, data
     return vibi_retrain
 
 
-    # print()
-    # print("start retraining")
-    # vibi_retrain = retraining_train(vibi, vibi_retrain, vibi_f_frkl_ss, dataloader_remain, dataloader_erase, reconstructor,
-    #                                 reconstruction_function,
-    #                                 loss_fn, optimizer_retrain, test_loader, train_loader)
-    #
-    #
-    #
-    # vibi_f_frkl_ss_w = vibi_f_frkl_ss.state_dict()
-    # diff_grad = vibi_f_frkl_ss.state_dict()
-    # for k in diff_grad.keys():
-    #     diff_grad[k] = diff_grad[k] - diff_grad[k]
-    # retrain_net_w = vibi_retrain.state_dict()
-    # distance = 0
-    # for k in vibi_f_frkl_ss_w.keys():
-    #     diff_grad[k] = retrain_net_w[k] - vibi_f_frkl_ss_w[k]
-    #     distance += torch.norm(diff_grad[k].float(), p=2)
-    # print("retrain-vibuss_unlearning_distance", distance)
-    #
-    # print('Beta', beta)
+class CustomLabelDataset(Dataset):
+    def __init__(self, dataset, label):
+        self.dataset = dataset
+        self.label = label
+
+    def __len__(self):
+        return len(self.dataset)
+
+    def __getitem__(self, idx):
+        data, _ = self.dataset[idx]  # Ignore the original label
+        return data, self.label
 
 
-
-
-####
 
 
 
@@ -1541,7 +1532,7 @@ args.dataset = 'CIFAR10'
 args.xpl_channels = 1
 args.epochs = int(10)
 args.add_noise = False
-args.beta = 0.0001
+args.beta = 1
 args.lr = 0.0005
 args.erased_size = 1500  # 120
 args.poison_portion = 0.0
@@ -1617,6 +1608,18 @@ remaining_size = full_size - erasing_size
 print('remaining_size', remaining_size, shadow_size, full_size, erasing_size)
 
 remaining_set, erasing_set = torch.utils.data.random_split(train_set, [remaining_size, erasing_size])
+
+selected_trained_set, temp_remain = torch.utils.data.random_split(remaining_set, [5000, remaining_size -5000])
+
+selected_test_set, temp_remain = torch.utils.data.random_split(test_set, [5000,  5000])
+
+
+# Wrap the datasets with custom labels
+labeled_trained_set = CustomLabelDataset(selected_trained_set, 1)
+labeled_test_set = CustomLabelDataset(selected_test_set, 0)
+
+# Concatenate the datasets
+concatenated_dataset = ConcatDataset([labeled_trained_set, labeled_test_set])
 
 print(len(remaining_set))
 print(len(remaining_set.dataset.data))
@@ -1793,15 +1796,62 @@ if init_epoch == 0 or args.resume_training:
     x_hat_cpu = x_hat.cpu().data
     x_hat_cpu = x_hat_cpu.clamp(0, 1)
     x_hat_cpu = x_hat_cpu.view(x_hat_cpu.size(0), 3, 32, 32)
-    grid = torchvision.utils.make_grid(x_hat_cpu, nrow=4, cmap="gray")
+    grid = torchvision.utils.make_grid(x_hat_cpu, nrow=4 )
     plt.imshow(np.transpose(grid, (1, 2, 0)))  # 交换维度，从GBR换成RGB
     plt.show()
     x_cpu = x.cpu().data
     x_cpu = x_cpu.clamp(0, 1)
     x_cpu = x_cpu.view(x_cpu.size(0), 3, 32, 32)
-    grid = torchvision.utils.make_grid(x_cpu, nrow=4, cmap="gray")
+    grid = torchvision.utils.make_grid(x_cpu, nrow=4 )
     plt.imshow(np.transpose(grid, (1, 2, 0)))  # 交换维度，从GBR换成RGB
     plt.show()
+
+
+# Create a DataLoader to iterate over the concatenated dataset
+data_loader = DataLoader(concatenated_dataset, batch_size=32, shuffle=True)
+
+infer_model = LinearModel(n_feature=3 * 7 * 7, n_output=1)
+
+infer_model = infer_model.to(device)
+optimizer_infer = torch.optim.Adam(infer_model.parameters(), lr=lr)
+
+criterion = nn.BCEWithLogitsLoss()  # Binary Cross Entropy with Logits Loss
+
+# Initialize AUC metric
+auroc = BinaryAUROC().to(device)
+accuracy = Accuracy(task='binary').to(device)
+
+# Training loop
+num_epochs=40
+for epoch in range(num_epochs):
+    infer_model.train()
+    for x, y in data_loader:
+        x, y = x.to(device), y.to(device).float()  # Ensure y is of type float for BCEWithLogitsLoss
+        optimizer_infer.zero_grad()
+        if args.dataset == 'MNIST':
+            x = x.view(x.size(0), -1)
+        logits_z_e, logits_y_e, x_hat_e, mu_e, logvar_e = vibi(x, mode='forgetting')
+        y_pred = infer_model(logits_z_e).squeeze()  # Get predictions and squeeze to match y shape
+
+        # Compute the loss
+        loss = criterion(y_pred, y)
+        loss.backward()
+        optimizer_infer.step()
+
+        # Update AUC metric
+        auroc.update(y_pred, y.int())
+        accuracy.update((torch.sigmoid(y_pred) > 0.5).int(), y.int())
+
+    # Compute AUC for the epoch
+    epoch_auc = auroc.compute()
+    epoch_accuracy = accuracy.compute()
+    print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item()}, AUC: {epoch_auc.item()}, Accuracy: {epoch_accuracy.item()}')
+
+    # Reset the metric for the next epoch
+    auroc.reset()
+    accuracy.reset()
+
+
 
 print()
 print("start hessian unlearning")

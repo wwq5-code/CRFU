@@ -21,9 +21,12 @@ import torchvision.transforms as T
 from torchvision import datasets, transforms
 import matplotlib.pyplot as plt
 import numpy as np
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader, Dataset, ConcatDataset
 import copy
 import random
+
+import torchmetrics
+from torchmetrics.classification import BinaryAUROC, Accuracy
 
 def conv_block(in_channels, out_channels, stride=1):
     return nn.Sequential(
@@ -540,7 +543,7 @@ class PoisonedDataset(Dataset):
                 # x_cpu = x.cpu().data
                 # x_cpu = x_cpu.clamp(0, 1)
                 # x_cpu = x_cpu.view(1, 1, 28, 28)
-                # grid = torchvision.utils.make_grid(x_cpu, nrow=1, cmap="gray")
+                # grid = torchvision.utils.make_grid(x_cpu, nrow=1)
                 # plt.imshow(np.transpose(grid, (1, 2, 0)))  # 交换维度，从GBR换成RGB
                 # plt.show()
 
@@ -583,7 +586,7 @@ def show_cifar(x):
     elif args.dataset == "CIFAR10":
         x = x.view(1, 3, 32, 32)
     print(x)
-    grid = torchvision.utils.make_grid(x, nrow=1, cmap="gray")
+    grid = torchvision.utils.make_grid(x, nrow=1)
     plt.imshow(np.transpose(grid, (1, 2, 0)))  # 交换维度，从GBR换成RGB
     plt.show()
 
@@ -601,7 +604,7 @@ def create_backdoor_train_dataset(dataname, train_data, base_label, trigger_labe
     elif args.dataset == "CIFAR10":
         x = x.view(1, 3, 32, 32)
     print(x)
-    grid = torchvision.utils.make_grid(x, nrow=1, cmap="gray")
+    grid = torchvision.utils.make_grid(x, nrow=1)
     plt.imshow(np.transpose(grid, (1, 2, 0)))  # 交换维度，从GBR换成RGB
     plt.show()
     return train_data.data, train_data.targets
@@ -612,7 +615,7 @@ def create_backdoor_train_dataset(dataname, train_data, base_label, trigger_labe
                 # x_cpu = x.cpu().data
                 # x_cpu = x_cpu.clamp(0, 1)
                 # x_cpu = x_cpu.view(1, 3, 32, 32)
-                # grid = torchvision.utils.make_grid(x_cpu, nrow=1, cmap="gray")
+                # grid = torchvision.utils.make_grid(x_cpu, nrow=1)
                 # plt.imshow(np.transpose(grid, (1, 2, 0)))  # 交换维度，从GBR换成RGB
                 # plt.show()
 """
@@ -631,7 +634,7 @@ def create_backdoor_test_dataset(dataname, test_data, base_label, trigger_label,
         x = x.view(x.size(0), 1, 28, 28)
     elif args.dataset == "CIFAR10":
         x = x.view(1, 3, 32, 32)
-    grid = torchvision.utils.make_grid(x, nrow=1, cmap="gray")
+    grid = torchvision.utils.make_grid(x, nrow=1)
     plt.imshow(np.transpose(grid, (1, 2, 0)))  # 交换维度，从GBR换成RGB
     plt.show()
     return b
@@ -837,9 +840,7 @@ def learning_train(dataset, model, loss_fn, reconstruction_function, args, epoch
         x = x.view(x.size(0), -1)
         # print(x)
         # break
-
         #test_grad(model, x, y, loss_fn, optimizer)
-
 
         logits_z, logits_y, x_hat, mu, logvar = model(x, mode='forgetting')  # (B, C* h* w), (B, N, 10)
         H_p_q = loss_fn(logits_y, y)
@@ -1145,14 +1146,14 @@ def unlearning_frkl_train(vibi, dataloader_erase, dataloader_remain, loss_fn, re
         # x_hat_e_cpu = x_hat_e.cpu().data
         # x_hat_e_cpu = x_hat_e_cpu.clamp(0, 1)
         # x_hat_e_cpu = x_hat_e_cpu.view(x_hat_e_cpu.size(0), 1, 28, 28)
-        # grid = torchvision.utils.make_grid(x_hat_e_cpu, nrow=4, cmap="gray")
+        # grid = torchvision.utils.make_grid(x_hat_e_cpu, nrow=4)
         # plt.imshow(np.transpose(grid, (1, 2, 0)))  # 交换维度，从GBR换成RGB
         # plt.show()
         #
         # x_cpu = x.cpu().data
         # x_cpu = x_cpu.clamp(0, 1)
         # x_cpu = x_cpu.view(x_cpu.size(0), 1, 28, 28)
-        # grid = torchvision.utils.make_grid(x_cpu, nrow=4, cmap="gray")
+        # grid = torchvision.utils.make_grid(x_cpu, nrow=4)
         # plt.imshow(np.transpose(grid, (1, 2, 0)))  # 交换维度，从GBR换成RGB
         # plt.show()
     return vibi_f_frkl, optimizer_frkl
@@ -1524,6 +1525,20 @@ def retraining_train(vibi, vibi_retrain, vibi_f_frkl_ss, dataloader_remain, data
     return vibi_retrain
 
 
+class CustomLabelDataset(Dataset):
+    def __init__(self, dataset, label):
+        self.dataset = dataset
+        self.label = label
+
+    def __len__(self):
+        return len(self.dataset)
+
+    def __getitem__(self, idx):
+        data, _ = self.dataset[idx]  # Ignore the original label
+        return data, self.label
+
+
+
 
 torch.cuda.manual_seed_all(0)
 torch.manual_seed(0)
@@ -1555,6 +1570,8 @@ args.poison_portion = 0.0
 args.erased_portion = 0.3
 args.erased_local_r = 0.02
 args.batch_size = args.local_bs
+
+
 
 '''backdoor depth will also influence the removal effect '''
 
@@ -1619,6 +1636,18 @@ remaining_size = full_size - erasing_size
 print('remaining_size', remaining_size, shadow_size, full_size, erasing_size)
 
 remaining_set, erasing_set = torch.utils.data.random_split(train_set, [remaining_size, erasing_size])
+
+selected_trained_set, temp_remain = torch.utils.data.random_split(remaining_set, [5000, remaining_size -5000])
+
+selected_test_set, temp_remain = torch.utils.data.random_split(test_set, [5000,  5000])
+
+
+# Wrap the datasets with custom labels
+labeled_trained_set = CustomLabelDataset(selected_trained_set, 1)
+labeled_test_set = CustomLabelDataset(selected_test_set, 0)
+
+# Concatenate the datasets
+concatenated_dataset = ConcatDataset([labeled_trained_set, labeled_test_set])
 
 print(len(remaining_set))
 print(len(remaining_set.dataset.data))
@@ -1763,24 +1792,64 @@ if init_epoch == 0 or args.resume_training:
     x_hat_cpu = x_hat.cpu().data
     x_hat_cpu = x_hat_cpu.clamp(0, 1)
     x_hat_cpu = x_hat_cpu.view(x_hat_cpu.size(0), 1, 28, 28)
-    grid = torchvision.utils.make_grid(x_hat_cpu, nrow=4, cmap="gray")
+    grid = torchvision.utils.make_grid(x_hat_cpu, nrow=4)
     plt.imshow(np.transpose(grid, (1, 2, 0)))  # 交换维度，从GBR换成RGB
     plt.show()
     x_cpu = x.cpu().data
     x_cpu = x_cpu.clamp(0, 1)
     x_cpu = x_cpu.view(x_cpu.size(0), 1, 28, 28)
-    grid = torchvision.utils.make_grid(x_cpu, nrow=4, cmap="gray")
+    grid = torchvision.utils.make_grid(x_cpu, nrow=4)
     plt.imshow(np.transpose(grid, (1, 2, 0)))  # 交换维度，从GBR换成RGB
     plt.show()
 
 
+# Create a DataLoader to iterate over the concatenated dataset
+data_loader = DataLoader(concatenated_dataset, batch_size=32, shuffle=True)
 
+infer_model = LinearModel(n_feature=49, n_output=1)
+
+infer_model = infer_model.to(device)
+optimizer_infer = torch.optim.Adam(infer_model.parameters(), lr=lr)
+
+criterion = nn.BCEWithLogitsLoss()  # Binary Cross Entropy with Logits Loss
+
+# Initialize AUC metric
+auroc = BinaryAUROC().to(device)
+accuracy = Accuracy(task='binary').to(device)
+
+# Training loop
+num_epochs=40
+for epoch in range(num_epochs):
+    infer_model.train()
+    for x, y in data_loader:
+        x, y = x.to(device), y.to(device).float()  # Ensure y is of type float for BCEWithLogitsLoss
+        optimizer_infer.zero_grad()
+        x = x.view(x.size(0), -1)
+        logits_z_e, logits_y_e, x_hat_e, mu_e, logvar_e = vibi(x, mode='forgetting')
+        y_pred = infer_model(logits_z_e).squeeze()  # Get predictions and squeeze to match y shape
+
+        # Compute the loss
+        loss = criterion(y_pred, y)
+        loss.backward()
+        optimizer_infer.step()
+
+        # Update AUC metric
+        auroc.update(y_pred, y.int())
+        accuracy.update((torch.sigmoid(y_pred) > 0.5).int(), y.int())
+
+    # Compute AUC for the epoch
+    epoch_auc = auroc.compute()
+    epoch_accuracy = accuracy.compute()
+    print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item()}, AUC: {epoch_auc.item()}, Accuracy: {epoch_accuracy.item()}')
+
+    # Reset the metric for the next epoch
+    auroc.reset()
+    accuracy.reset()
 
 
 
 print()
 print("start hessian unlearning")
-
 vibi_f_hessian, optimizer_hessian = unlearning_hessian_train(copy.deepcopy(vibi).to(args.device), dataloader_erase, remaining_set, loss_fn,
                                                              reconstructor, reconstruction_function,
                                                              test_loader, train_loader, train_type='Hessian')
@@ -1800,8 +1869,6 @@ vibi_f_frkl, optimizer_frkl = unlearning_frkl_train(copy.deepcopy(vibi).to(args.
                                                     reconstruction_function, test_loader, train_loader, train_type='VIBU')
 
 
-
-
 # print()
 # print("start VIBU-SS")
 # vibi_f_frkl_ss, optimizer_frkl_ss = unlearning_frkl_train(copy.deepcopy(vibi).to(args.device), dataloader_erase,
@@ -1809,6 +1876,7 @@ vibi_f_frkl, optimizer_frkl = unlearning_frkl_train(copy.deepcopy(vibi).to(args.
 #                                                           reconstructor,
 #                                                           reconstruction_function, test_loader, train_loader,
 #                                                           train_type='VIBU-SS')
+
 
 # vibi_retrain, lr = init_vibi(args.dataset)
 # vibi_retrain.to(args.device)

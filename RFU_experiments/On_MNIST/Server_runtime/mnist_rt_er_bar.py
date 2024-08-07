@@ -25,8 +25,8 @@ plt.figure()
 # plt.bar(x + width / 2 - width / 8 + width / 16, unl_hess_r, width=0.168, label='HBU', color='tomato', hatch='-')
 
 plt.bar(x - width / 2.5 ,  unl_vib, width=width/3, label='RFU', color='g', hatch='x')
-plt.bar(x, unl_br, width=width/3, label='VBU', color='orange', hatch='\\')
-plt.bar(x + width / 2.5,  unl_hess_r, width=width/3, label='HBU', color='tomato', hatch='-')
+plt.bar(x, unl_br, width=width/3, label='VBU', color='orange', hatch='o')
+plt.bar(x + width / 2.5,  unl_hess_r, width=width/3, label='HBU', color='tomato', hatch='\\')
 
 
 # Add some text for labels, title and custom x-axis tick labels, etc.
@@ -39,7 +39,7 @@ my_y_ticks = np.arange(0, 3.1, 0.5)
 plt.yticks(my_y_ticks, fontsize=20)
 # ax.set_yticklabels(my_y_ticks,fontsize=15)
 
-plt.legend(loc='upper left', fontsize=15)
+plt.legend(loc='upper left', fontsize=20)
 plt.xlabel('$\it{EDR}$' ,fontsize=20)
 # ax.bar_label(rects1, padding=1)
 # ax.bar_label(rects2, padding=3)
@@ -53,5 +53,5 @@ plt.rcParams['figure.subplot.left'] = 0.11
 plt.rcParams['figure.subplot.bottom'] = 0.08
 plt.rcParams['figure.subplot.right'] = 0.977
 plt.rcParams['figure.subplot.top'] = 0.969
-plt.savefig('mnist_rt_er_bar.png', dpi=200)
+plt.savefig('mnist_rt_er_bar.pdf', format='pdf', dpi=200)
 plt.show()

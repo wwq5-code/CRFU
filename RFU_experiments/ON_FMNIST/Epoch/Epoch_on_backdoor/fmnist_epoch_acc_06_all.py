@@ -288,5 +288,5 @@ plt.rcParams['figure.subplot.left'] = 0.11
 plt.rcParams['figure.subplot.bottom'] = 0.08
 plt.rcParams['figure.subplot.right'] = 0.977
 plt.rcParams['figure.subplot.top'] = 0.969
-plt.savefig('fmnist_epoch_detail_acc06_all.png', dpi=200)
+plt.savefig('fmnist_epoch_detail_acc06_all.pdf', format='pdf', dpi=200)
 plt.show()

@@ -268,12 +268,12 @@ for i in range(50):
 
 # plt.grid()
 leg = plt.legend(fancybox=True, shadow=True)
-plt.xlabel('Epoch' ,fontsize=20)
-plt.ylabel('Accuracy (%)' ,fontsize=20)
-my_y_ticks = np.arange(0 ,105,20)
-plt.yticks(my_y_ticks,fontsize=20)
+plt.xlabel('Epoch', fontsize=20)
+plt.ylabel('Accuracy (%)', fontsize=20)
+my_y_ticks = np.arange(0, 105, 20)
+plt.yticks(my_y_ticks, fontsize=20)
 my_x_ticks = np.arange(0, 201, 50)
-plt.xticks(my_x_ticks,fontsize=20)
+plt.xticks(my_x_ticks, fontsize=20)
 # plt.title('CIFAR10 IID')
 # plt.legend(loc='best',fontsize=16)
 
@@ -288,5 +288,5 @@ plt.rcParams['figure.subplot.left'] = 0.11
 plt.rcParams['figure.subplot.bottom'] = 0.08
 plt.rcParams['figure.subplot.right'] = 0.977
 plt.rcParams['figure.subplot.top'] = 0.969
-plt.savefig('mnist_epoch_detail_acc06_all.png', dpi=200)
+plt.savefig('mnist_epoch_detail_acc06_all.pdf', format='pdf', dpi=200)
 plt.show()

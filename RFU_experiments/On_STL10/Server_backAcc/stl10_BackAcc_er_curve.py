@@ -13,11 +13,11 @@ x=[1, 2, 3, 4, 5]
 # basic_for_plt=[99.8, 99.8, 99.8, 99.8, 99.8]
 
 labels =    ['2%', '4%', '6%', '8%', '10%']
-unl_fr =    [0.0,   0.0, 0.0,   0.0,  0.0 ]
-unl_br =    [ 0.317, 0.708, 0.422, 0.308, 0.6  ]
-unl_vibu =  [ 1.0817, 1.29275, 0.583, 1.104, 0.783]
+#unl_fr =    [0.0,   0.0, 0.0,   0.0,  0.0 ]
+unl_br =    [ 0.0, 0.1, 0.66, 0.0, 0.0  ]
+unl_vibu =  [ 1.0, 1.29275, 1.67, 1.0, 1.4]
 #unl_self_r = [0.009,0.002,0.002, 0.005, 0.007 ]
-unl_hess_r = [0.00833, 0.03,0.044, 0.05, 0.033 ]
+unl_hess_r = [0.0, 0.03,1.33, 0.4, 0.2]
 
 
 
@@ -63,5 +63,5 @@ plt.rcParams['figure.subplot.left'] = 0.11
 plt.rcParams['figure.subplot.bottom'] = 0.08
 plt.rcParams['figure.subplot.right'] = 0.977
 plt.rcParams['figure.subplot.top'] = 0.969
-plt.savefig('mnist_backacc_er_curve.pdf', format='pdf', dpi=200)
+plt.savefig('stl10_backacc_er_curve.pdf', format='pdf', dpi=200)
 plt.show()

@@ -13,14 +13,14 @@ x=[1, 2, 3, 4, 5]
 # basic_for_plt=[99.8, 99.8, 99.8, 99.8, 99.8]
 
 labels = ['2%', '4%', '6%', '8%', '10%' ]
-unl_fr = [97.62, 97.6, 97.6, 97.52, 97.45 ]
-unl_br = [92.17, 94.17, 92.97, 92.99, 91.98 ]
-unl_vibu = [94.28, 95.69, 94.72, 94.42, 94.45  ]
+# unl_fr = [97.62, 97.6, 97.6, 97.52, 97.45 ]
+unl_br = [25.875, 31.17, 33.12, 31.46, 31.3 ]
+unl_vibu = [36.425, 35.69, 35.5, 35.93, 35.27  ]
 
 # unl_br = [93.17, 92.7, 93.18, 93.14, 95.68 ]
 # unl_vibu = [93.85, 93.23, 94.7, 93.91, 95.95  ]
 #unl_self_r = [97.58, 97.44, 97.44, 97.3, 97.42 ]
-unl_hess_r = [89.98,  88.81, 87.99, 88.6, 86.65  ]
+unl_hess_r = [33.35,  33.81, 34.15, 33.21, 34.275  ]
 
 
 
@@ -46,7 +46,7 @@ plt.plot(x, unl_hess_r, color='r',  marker='p',  label='HBU',linewidth=l_w, mark
 leg = plt.legend(fancybox=True, shadow=True)
 # plt.xlabel('Malicious Client Ratio (%)' ,fontsize=16)
 plt.ylabel('Accuracy (%)' ,fontsize=20)
-my_y_ticks = np.arange(88 ,101,2)
+my_y_ticks = np.arange(30, 51, 5)
 plt.yticks(my_y_ticks,fontsize=20)
 plt.xlabel('$\it{EDR}$' ,fontsize=20)
 
@@ -61,5 +61,5 @@ plt.rcParams['figure.subplot.left'] = 0.11
 plt.rcParams['figure.subplot.bottom'] = 0.08
 plt.rcParams['figure.subplot.right'] = 0.977
 plt.rcParams['figure.subplot.top'] = 0.969
-plt.savefig('mnist_acc_er_curve.pdf', format='pdf', dpi=200)
+plt.savefig('stl10_acc_er_curve.pdf', format='pdf', dpi=200)
 plt.show()
