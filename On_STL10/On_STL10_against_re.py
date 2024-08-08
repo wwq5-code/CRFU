@@ -1538,7 +1538,7 @@ args.lr = 0.0005
 args.erased_size = 1500  # 120
 args.poison_portion = 0.0
 args.erased_portion = 0.3
-args.erased_local_r = 0.06
+args.erased_local_r = 0.1
 args.batch_size = args.local_bs
 
 ## in unlearning, we should make the unlearned model first be backdoored and then forget the trigger effect
