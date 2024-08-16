@@ -14,13 +14,13 @@ x=[1, 2, 3, 4, 5]
 
 labels = ['2%', '4%', '6%', '8%', '10%' ]
 # unl_fr = [97.62, 97.6, 97.6, 97.52, 97.45 ]
-unl_br = [37.62, 38.3, 35.4, 34.825, 34.6 ]
-unl_vibu = [42.17, 40.92, 37.67, 37.062, 38.27]
+unl_br = [52.62, 53.3, 50.4, 49.825, 49.6 ]
+unl_vibu = [57.17, 55.92, 52.67, 52.062, 53.27]
 
 # unl_br = [93.17, 92.7, 93.18, 93.14, 95.68 ]
 # unl_vibu = [93.85, 93.23, 94.7, 93.91, 95.95  ]
 #unl_self_r = [97.58, 97.44, 97.44, 97.3, 97.42 ]
-unl_hess_r = [37.87,  39.81, 35.53, 36.27, 35.88  ]
+unl_hess_r = [52.87,  53.81, 50.53, 50.27, 50.88  ]
 
 
 
@@ -46,7 +46,7 @@ plt.plot(x, unl_hess_r, color='r',  marker='p',  label='HBU',linewidth=l_w, mark
 leg = plt.legend(fancybox=True, shadow=True)
 # plt.xlabel('Malicious Client Ratio (%)' ,fontsize=16)
 plt.ylabel('Accuracy (%)' ,fontsize=20)
-my_y_ticks = np.arange(30, 51, 5)
+my_y_ticks = np.arange(40, 61, 5)
 plt.yticks(my_y_ticks,fontsize=20)
 plt.xlabel('$\it{EDR}$' ,fontsize=20)
 

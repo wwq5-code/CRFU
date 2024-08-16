@@ -25,6 +25,7 @@ from torch.utils.data import DataLoader, Dataset, ConcatDataset
 import copy
 import random
 import time
+import  torchvision.models as models
 
 import torchmetrics
 from torchmetrics.classification import BinaryAUROC, Accuracy
@@ -86,9 +87,30 @@ class ResNet(nn.Module):
         return x
 
 
+
 def resnet18(in_channels, num_classes):
-    block_features = [64] * 2 + [128] * 2 + [256] * 2 + [512] * 2
-    return ResNet(in_channels, block_features, num_classes)
+    """
+    Initializes a ResNet-18 model for a specific number of input channels and output classes.
+
+    Parameters:
+    in_channels (int): Number of input channels for the first convolutional layer.
+    num_classes (int): Number of output classes for the final fully connected layer.
+
+    Returns:
+    model (torch.nn.Module): Modified ResNet-18 model.
+    """
+    # Load the pre-trained ResNet-18 model
+    model = models.resnet18(pretrained=True)
+
+    # Modify the first convolutional layer to accept the specified number of input channels
+    if in_channels != 3:  # Default is 3 channels (RGB)
+        model.conv1 = nn.Conv2d(in_channels, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
+
+    # Modify the final fully connected layer to output the specified number of classes
+    model.fc = nn.Linear(model.fc.in_features, num_classes)
+
+    return model
+
 
 
 def resnet34(in_channels, num_classes):
@@ -667,7 +689,7 @@ def num_params(model):
 
 
 def sample_gumbel(size):
-    return -torch.log(-torch.log(torch.rand(size)))
+    return -torch.log(-torch.log(torch.rand(size)+1e-6) + 1e-6)
 
 
 def gumbel_reparametrize(log_p, temp, num_samples):
@@ -702,8 +724,8 @@ def KL_between_normals(q_distr, p_distr):
 
     mu_diff = mu_p - mu_q
     mu_diff_sq = torch.mul(mu_diff, mu_diff)
-    logdet_sigma_q = torch.sum(2 * torch.log(torch.clamp(sigma_q, min=1e-8)), dim=1)
-    logdet_sigma_p = torch.sum(2 * torch.log(torch.clamp(sigma_p, min=1e-8)), dim=1)
+    logdet_sigma_q = torch.sum(2 * torch.log(torch.clamp(sigma_q, min=1e-8) +1e-6), dim=1)
+    logdet_sigma_p = torch.sum(2 * torch.log(torch.clamp(sigma_p, min=1e-8) +1e-6), dim=1)
 
     fs = torch.sum(torch.div(sigma_q ** 2, sigma_p ** 2), dim=1) + torch.sum(torch.div(mu_diff_sq, sigma_p ** 2), dim=1)
     two_kl = fs - k + logdet_sigma_p - logdet_sigma_q
@@ -737,14 +759,14 @@ class VIBI(nn.Module):
             B, double_dimZ = double_logits_z.shape
             dimZ = int(double_dimZ / 2)
             mu = double_logits_z[:, :dimZ].cuda()
-            logvar = torch.log(torch.nn.functional.softplus(double_logits_z[:, dimZ:]).pow(2)).cuda()
+            logvar = torch.log(torch.nn.functional.softplus(double_logits_z[:, dimZ:]).pow(2) + 1e-6).cuda()
             logits_z = self.reparametrize(mu, logvar)
             return logits_z, mu, logvar
         elif mode == 'test':  # return top k pixels from input
             B, double_dimZ = double_logits_z.shape
             dimZ = int(double_dimZ / 2)
             mu = double_logits_z[:, :dimZ].cuda()
-            logvar = torch.log(torch.nn.functional.softplus(double_logits_z[:, dimZ:]).pow(2)).cuda()
+            logvar = torch.log(torch.nn.functional.softplus(double_logits_z[:, dimZ:]).pow(2) + 1e-6).cuda()
             logits_z = self.reparametrize(mu, logvar)
             return logits_z
 
@@ -1533,12 +1555,12 @@ args.dataset = 'STL10'
 args.xpl_channels = 1
 args.epochs = int(10)
 args.add_noise = False
-args.beta = 0.001
+args.beta = 0.0001
 args.lr = 0.0005
 args.erased_size = 1500  # 120
 args.poison_portion = 0.0
 args.erased_portion = 0.3
-args.erased_local_r = 0.1
+args.erased_local_r = 0.06
 args.batch_size = args.local_bs
 
 ## in unlearning, we should make the unlearned model first be backdoored and then forget the trigger effect
